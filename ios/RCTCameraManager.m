@@ -76,7 +76,7 @@ RCT_EXPORT_MODULE();
                },
            @"CaptureMode": @{
                @"still": @(RCTCameraCaptureModeStill),
-               @"video": @(RCTCameraCaptureModeVideo)
+               //@"video": @(RCTCameraCaptureModeVideo)
                },
            @"CaptureQuality": @{
                @"low": @(RCTCameraCaptureSessionPresetLow),
@@ -263,7 +263,7 @@ RCT_CUSTOM_VIEW_PROPERTY(mirrorImage, BOOL, RCTCamera) {
 RCT_CUSTOM_VIEW_PROPERTY(barCodeTypes, NSArray, RCTCamera) {
   self.barCodeTypes = [RCTConvert NSArray:json];
 }
-
+/*
 RCT_CUSTOM_VIEW_PROPERTY(captureAudio, BOOL, RCTCamera) {
   BOOL captureAudio = [RCTConvert BOOL:json];
   if (captureAudio) {
@@ -271,7 +271,7 @@ RCT_CUSTOM_VIEW_PROPERTY(captureAudio, BOOL, RCTCamera) {
     [self initializeCaptureSessionInput:AVMediaTypeAudio];
   }
 }
-
+*/
 - (NSArray *)customDirectEventTypes
 {
     return @[
@@ -340,16 +340,16 @@ RCT_EXPORT_METHOD(capture:(NSDictionary *)options
   if (captureMode == RCTCameraCaptureModeStill) {
     [self captureStill:captureTarget options:options resolve:resolve reject:reject];
   }
-  else if (captureMode == RCTCameraCaptureModeVideo) {
-    [self captureVideo:captureTarget options:options resolve:resolve reject:reject];
-  }
+ // else if (captureMode == RCTCameraCaptureModeVideo) {
+ //   [self captureVideo:captureTarget options:options resolve:resolve reject:reject];
+ // }
 }
 
-RCT_EXPORT_METHOD(stopCapture) {
-  if (self.movieFileOutput.recording) {
-    [self.movieFileOutput stopRecording];
-  }
-}
+//RCT_EXPORT_METHOD(stopCapture) {
+//  if (self.movieFileOutput.recording) {
+//    [self.movieFileOutput stopRecording];
+//  }
+//}
 
 RCT_EXPORT_METHOD(getFOV:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject) {
   NSArray *devices = [AVCaptureDevice devices];
@@ -405,13 +405,13 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
       self.stillImageOutput = stillImageOutput;
     }
 
-    AVCaptureMovieFileOutput *movieFileOutput = [[AVCaptureMovieFileOutput alloc] init];
+ /*   AVCaptureMovieFileOutput *movieFileOutput = [[AVCaptureMovieFileOutput alloc] init];
     if ([self.session canAddOutput:movieFileOutput])
     {
       [self.session addOutput:movieFileOutput];
       self.movieFileOutput = movieFileOutput;
     }
-
+ */
     AVCaptureMetadataOutput *metadataOutput = [[AVCaptureMetadataOutput alloc] init];
     if ([self.session canAddOutput:metadataOutput]) {
       [metadataOutput setMetadataObjectsDelegate:self queue:self.sessionQueue];
@@ -493,12 +493,13 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
     if ([self.session canAddInput:captureDeviceInput]) {
       [self.session addInput:captureDeviceInput];
 
-      if (type == AVMediaTypeAudio) {
+  /*    if (type == AVMediaTypeAudio) {
         self.audioCaptureDeviceInput = captureDeviceInput;
       }
       else if (type == AVMediaTypeVideo) {
         self.videoCaptureDeviceInput = captureDeviceInput;
       }
+   */
       [self.metadataOutput setMetadataObjectTypes:self.metadataOutput.availableMetadataObjectTypes];
     }
 
@@ -695,6 +696,7 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
   return rotatedImage;
 }
 
+/*
 -(void)captureVideo:(NSInteger)target options:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
 {
     AVCaptureVideoOrientation orientation = options[@"orientation"] != nil ? [options[@"orientation"] integerValue] : self.orientation;
@@ -706,7 +708,9 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
         [self captureVideo:target options:options orientation:orientation resolve:resolve reject:reject];
     }
 }
+*/
 
+/*
 -(void)captureVideo:(NSInteger)target options:(NSDictionary *)options orientation:(AVCaptureVideoOrientation)orientation resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
 {
   if (self.movieFileOutput.recording) {
@@ -841,6 +845,7 @@ didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
     self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(@"Target not supported"));
   }
 }
+*/
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection {
 

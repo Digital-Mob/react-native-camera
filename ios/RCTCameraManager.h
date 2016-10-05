@@ -18,7 +18,7 @@ typedef NS_ENUM(NSInteger, RCTCameraCaptureSessionPreset) {
 
 typedef NS_ENUM(NSInteger, RCTCameraCaptureMode) {
   RCTCameraCaptureModeStill = 0,
-  RCTCameraCaptureModeVideo = 1
+  //RCTCameraCaptureModeVideo = 1
 };
 
 typedef NS_ENUM(NSInteger, RCTCameraCaptureTarget) {
@@ -57,20 +57,20 @@ typedef NS_ENUM(NSInteger, RCTCameraTorchMode) {
 
 @property (nonatomic, strong) dispatch_queue_t sessionQueue;
 @property (nonatomic, strong) AVCaptureSession *session;
-@property (nonatomic, strong) AVCaptureDeviceInput *audioCaptureDeviceInput;
+//@property (nonatomic, strong) AVCaptureDeviceInput *audioCaptureDeviceInput;
 @property (nonatomic, strong) AVCaptureDeviceInput *videoCaptureDeviceInput;
 @property (nonatomic, strong) AVCaptureStillImageOutput *stillImageOutput;
-@property (nonatomic, strong) AVCaptureMovieFileOutput *movieFileOutput;
+//@property (nonatomic, strong) AVCaptureMovieFileOutput *movieFileOutput;
 @property (nonatomic, strong) AVCaptureMetadataOutput *metadataOutput;
 @property (nonatomic, strong) id runtimeErrorHandlingObserver;
 @property (nonatomic, assign) NSInteger presetCamera;
 @property (nonatomic, strong) AVCaptureVideoPreviewLayer *previewLayer;
-@property (nonatomic, assign) NSInteger videoTarget;
+//@property (nonatomic, assign) NSInteger videoTarget;
 @property (nonatomic, assign) NSInteger orientation;
 @property (nonatomic, assign) BOOL mirrorImage;
 @property (nonatomic, strong) NSArray* barCodeTypes;
-@property (nonatomic, strong) RCTPromiseResolveBlock videoResolve;
-@property (nonatomic, strong) RCTPromiseRejectBlock videoReject;
+//@property (nonatomic, strong) RCTPromiseResolveBlock videoResolve;
+//@property (nonatomic, strong) RCTPromiseRejectBlock videoReject;
 @property (nonatomic, strong) RCTCamera *camera;
 
 
@@ -80,7 +80,7 @@ typedef NS_ENUM(NSInteger, RCTCameraTorchMode) {
 - (void)getFOV:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject;
 - (void)hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject;
 - (void)initializeCaptureSessionInput:(NSString*)type;
-- (void)stopCapture;
+//- (void)stopCapture;
 - (void)startSession;
 - (void)stopSession;
 - (void)focusAtThePoint:(CGPoint) atPoint;
