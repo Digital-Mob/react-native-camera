@@ -17,6 +17,8 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   NSURL *jsCodeLocation;
+
+<<<<<<< HEAD
   /**
    * Loading JavaScript code - uncomment the one you want.
    *
@@ -43,6 +45,9 @@
    */
 
   jsCodeLocation = [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
+=======
+  jsCodeLocation = [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index.ios" fallbackResource:nil];
+>>>>>>> 3a20709f64f3266d3b2a4e5d9cb566d4c7217447
 
   RCTRootView *rootView = [[RCTRootView alloc] initWithBundleURL:jsCodeLocation
                                                       moduleName:@"Example"

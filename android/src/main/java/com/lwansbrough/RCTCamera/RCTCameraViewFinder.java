@@ -29,6 +29,7 @@ import com.google.zxing.common.HybridBinarizer;
 
 class RCTCameraViewFinder extends TextureView implements TextureView.SurfaceTextureListener, Camera.PreviewCallback {
     private int _cameraType;
+    private int _captureMode;
     private SurfaceTexture _surfaceTexture;
     private boolean _isStarting;
     private boolean _isStopping;
@@ -88,6 +89,11 @@ class RCTCameraViewFinder extends TextureView implements TextureView.SurfaceText
         }).start();
     }
 
+    public void setCaptureMode(final int captureMode) {
+        RCTCamera.getInstance().setCaptureMode(_cameraType, captureMode);
+        this._captureMode = captureMode;
+    }
+
     public void setCaptureQuality(String captureQuality) {
         RCTCamera.getInstance().setCaptureQuality(_cameraType, captureQuality);
     }
@@ -125,8 +131,16 @@ class RCTCameraViewFinder extends TextureView implements TextureView.SurfaceText
                 }
                 // set picture size
                 // defaults to max available size
+                List<Camera.Size> supportedSizes;
+                if (_captureMode == RCTCameraModule.RCT_CAMERA_CAPTURE_MODE_STILL) {
+                    supportedSizes = parameters.getSupportedPictureSizes();
+                } else if (_captureMode == RCTCameraModule.RCT_CAMERA_CAPTURE_MODE_VIDEO) {
+                    supportedSizes = RCTCamera.getInstance().getSupportedVideoSizes(_camera);
+                } else {
+                    throw new RuntimeException("Unsupported capture mode:" + _captureMode);
+                }
                 Camera.Size optimalPictureSize = RCTCamera.getInstance().getBestSize(
-                        parameters.getSupportedPictureSizes(),
+                        supportedSizes,
                         Integer.MAX_VALUE,
                         Integer.MAX_VALUE
                 );
@@ -182,12 +196,8 @@ class RCTCameraViewFinder extends TextureView implements TextureView.SurfaceText
             return BarcodeFormat.EAN_13;
         } else if ("ean8".equals(c)) {
             return BarcodeFormat.EAN_8;
-        } else if ("ean8".equals(c)) {
-            return BarcodeFormat.EAN_8;
         } else if ("qr".equals(c)) {
             return BarcodeFormat.QR_CODE;
-        } else if ("ean8".equals(c)) {
-            return BarcodeFormat.EAN_8;
         } else if ("pdf417".equals(c)) {
             return BarcodeFormat.PDF_417;
         } else if ("upce".equals(c)) {
