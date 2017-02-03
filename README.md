@@ -5,7 +5,12 @@ Hey there, I'm looking for active contributors to help move the development of t
 
 A camera module for React Native.
 
-![](https://i.imgur.com/5j2JdUk.gif)
+#### Breaking Changes
+react-native header imports have changed in v0.40, and that means breaking changes for all! [Reference PR & Discussion](https://github.com/lwansbrough/react-native-camera/pull/544).
+- if on react-native < 0.40: `npm i react-native-camera@0.4`
+- if on react-native >= 0.40 `npm i react-native-camera@0.5`
+
+![5j2jduk](https://cloud.githubusercontent.com/assets/2302315/22190752/6bc6ccd0-e0da-11e6-8e2f-6f22a3567a57.gif)
 
 ## Getting started
 
@@ -15,8 +20,14 @@ A camera module for React Native.
 ```
 <key>NSCameraUsageDescription</key>
 <string>Your message to user when the camera is accessed for the first time</string>
+
+<!-- Include this only if you are planning to use the camera roll -->
 <key>NSPhotoLibraryUsageDescription</key>
-<string>Your message to user when the photo library is access for the first time</string>
+<string>Your message to user when the photo library is accessed for the first time</string>
+
+<!-- Include this only if you are planning to use the microphone for video recording -->
+<key>NSMicrophoneUsageDescription</key>
+<string>Your message to user when the microsphone is accessed for the first time</string>
 ```
 
 ### Mostly automatic install with react-native
@@ -59,7 +70,12 @@ pod 'react-native-camera', path: '../node_modules/react-native-camera'
 	```
     compile project(':react-native-camera')
 	```
+5. Declare the permissions in your Android Manifest
 
+  ```
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-feature android:name="android.hardware.camera" />
+  ```
 
 ## Usage
 
@@ -184,7 +200,7 @@ Values: `true` (default) or `false`
 
 This property allows you to specify whether a shutter sound is played on capture. It is currently android only, pending [a reasonable mute implementation](http://stackoverflow.com/questions/4401232/avfoundation-how-to-turn-off-the-shutter-sound-when-capturestillimageasynchrono) in iOS.
 
-#### `iOS` `onBarCodeRead`
+#### `onBarCodeRead`
 
 Will call the specified method when a barcode is detected in the camera's view.
 
@@ -193,7 +209,7 @@ Event contains `data` (the data in the barcode) and `bounds` (the rectangle whic
 The following barcode types can be recognised:
 
 - `aztec`
-- `code138`
+- `code128`
 - `code39`
 - `code39mod43`
 - `code93`
@@ -208,7 +224,7 @@ The following barcode types can be recognised:
 
 The barcode type is provided in the `data` object.
 
-#### `iOS` `barCodeTypes`
+#### `barCodeTypes`
 
 An array of barcode types to search for. Defaults to all types listed above. No effect if `onBarCodeRead` is undefined.
 
@@ -298,7 +314,15 @@ Ends the current capture session for video captures. Only applies when the curre
 
 #### `iOS` `Camera.checkDeviceAuthorizationStatus(): Promise`
 
-Exposes the native API for checking if the device has authorized access to the camera. Can be used to call before loading the Camera component to ensure proper UX. The promise will be fulfilled with `true` or `false` depending on whether the device is authorized.
+Exposes the native API for checking if the device has authorized access to the camera (camera and microphone permissions). Can be used to call before loading the Camera component to ensure proper UX. The promise will be fulfilled with `true` or `false` depending on whether the device is authorized.
+
+#### `iOS` `Camera.checkVideoAuthorizationStatus(): Promise`
+
+The same as `Camera.checkDeviceAuthorizationStatus()` but only checks the camera permission.
+
+#### `iOS` `Camera.checkAudioAuthorizationStatus(): Promise`
+
+The same as `Camera.checkDeviceAuthorizationStatus()` but only checks the microphone permission.
 
 ## Subviews
 This component supports subviews, so if you wish to use the camera view as a background or if you want to layout buttons/images/etc. inside the camera then you can do that.

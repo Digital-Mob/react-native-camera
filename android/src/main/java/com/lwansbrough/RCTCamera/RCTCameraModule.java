@@ -10,10 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.hardware.Camera;
-import android.media.CamcorderProfile;
-import android.media.MediaActionSound;
-import android.media.MediaRecorder;
-import android.media.MediaScannerConnection;
+import android.media.*;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -21,6 +18,11 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.Surface;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.MetadataException;
+import com.drew.metadata.exif.ExifIFD0Directory;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -30,14 +32,7 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -92,6 +87,7 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
     private Camera mCamera = null;
     private Promise mRecordingPromise = null;
     private ReadableMap mRecordingOptions;
+    private Boolean mSafeToCapture = true;
 
     public RCTCameraModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -493,6 +489,28 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
         return byteArray;
     }
 
+    private byte[] saveImage(InputStream is, Bitmap image) {
+        byte[] result = null;
+
+        try {
+            result = compress(image, 85);
+        } catch (OutOfMemoryError e) {
+            try {
+                result = compress(image, 70);
+            } catch (OutOfMemoryError e2) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            is.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
     private byte[] mirrorImage(byte[] data) {
         ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
         Bitmap photo = BitmapFactory.decodeStream(inputStream);
@@ -501,25 +519,82 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
         m.preScale(-1, 1);
         Bitmap mirroredImage = Bitmap.createBitmap(photo, 0, 0, photo.getWidth(), photo.getHeight(), m, false);
 
-        byte[] result = null;
+        return saveImage(inputStream, mirroredImage);
+    }
 
+
+    private byte[] rotate(byte[] data, int exifOrientation) {
+        final Matrix bitmapMatrix = new Matrix();
+        switch(exifOrientation)
+        {
+            case 1:
+                break;
+            case 2:
+                bitmapMatrix.postScale(-1, 1);
+                break;
+            case 3:
+                bitmapMatrix.postRotate(180);
+                break;
+            case 4:
+                bitmapMatrix.postRotate(180);
+                bitmapMatrix.postScale(-1, 1);
+                break;
+            case 5:
+                bitmapMatrix.postRotate(90);
+                bitmapMatrix.postScale(-1, 1);
+                break;
+            case 6:
+                bitmapMatrix.postRotate(90);
+                break;
+            case 7:
+                bitmapMatrix.postRotate(270);
+                bitmapMatrix.postScale(-1, 1);
+                break;
+            case 8:
+                bitmapMatrix.postRotate(270);
+                break;
+            default:
+                break;
+        }
+
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
+        Bitmap decodedBitmap = BitmapFactory.decodeStream(inputStream);
+        final Bitmap transformedBitmap = Bitmap.createBitmap(
+                decodedBitmap, 0, 0, decodedBitmap.getWidth(), decodedBitmap.getHeight(), bitmapMatrix, false
+        );
+
+        return saveImage(inputStream, transformedBitmap);
+    }
+
+    private byte[] fixOrientation(byte[] data) {
+        final Metadata metadata;
         try {
-            result = compress(mirroredImage, 85);
-        } catch (OutOfMemoryError e) {
-            try {
-                result = compress(mirroredImage, 70);
-            } catch (OutOfMemoryError e2) {
-                e.printStackTrace();
+            metadata = ImageMetadataReader.readMetadata(
+                    new BufferedInputStream(new ByteArrayInputStream(data)), data.length
+            );
+
+            final ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+            if (exifIFD0Directory == null) {
+                return data;
+            } else if (exifIFD0Directory.containsTag(ExifIFD0Directory.TAG_ORIENTATION)) {
+                final int exifOrientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+                return rotate(data, exifOrientation);
             }
-        }
-
-        try {
-            inputStream.close();
-        } catch (IOException e) {
+            return data;
+        } catch (IOException | ImageProcessingException | MetadataException e) {
             e.printStackTrace();
+            return data;
         }
+    }
 
-        return result;
+    private void rewriteOrientation(String path) {
+        try {
+            ExifInterface exif = new ExifInterface(path);
+            exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+            exif.saveAttributes();
+        } catch (IOException e) {
+            Log.e(TAG, e.getMessage());
+        }
     }
 
     private byte[] compress(Bitmap bitmap, int quality) throws OutOfMemoryError {
@@ -582,7 +657,9 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
         final Boolean shouldMirror = options.hasKey("mirrorImage") && options.getBoolean("mirrorImage");
 
         RCTCamera.getInstance().adjustCameraRotationToDeviceOrientation(options.getInt("type"), deviceOrientation);
-        camera.takePicture(null, null, new Camera.PictureCallback() {
+        camera.setPreviewCallback(null);
+
+        Camera.PictureCallback captureCallback = new Camera.PictureCallback() {
             @Override
             public void onPictureTaken(byte[] data, Camera camera) {
 
@@ -592,6 +669,8 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
                         promise.reject("Error mirroring image");
                     }
                 }
+
+                data = fixOrientation(data);
 
                 camera.stopPreview();
                 camera.startPreview();
@@ -615,6 +694,7 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
                             return;
                         }
 
+                        rewriteOrientation(cameraRollFile.getAbsolutePath());
                         addToMediaStore(cameraRollFile.getAbsolutePath());
                         response.putString("path", Uri.fromFile(cameraRollFile).toString());
                         promise.resolve(response);
@@ -633,6 +713,7 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
                             return;
                         }
 
+                        rewriteOrientation(pictureFile.getAbsolutePath());
                         response.putString("path", Uri.fromFile(pictureFile).toString());
                         promise.resolve(response);
                         break;
@@ -649,13 +730,25 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
                             promise.reject(error);
                         }
 
+                        rewriteOrientation(tempFile.getAbsolutePath());
                         response.putString("path", Uri.fromFile(tempFile).toString());
                         promise.resolve(response);
                         break;
                     }
                 }
+
+                mSafeToCapture = true;
             }
-        });
+        };
+
+        if(mSafeToCapture) {
+          try {
+            camera.takePicture(null, null, captureCallback);
+            mSafeToCapture = false;
+          } catch(RuntimeException ex) {
+              Log.e(TAG, "Couldn't capture photo.", ex);
+          }
+        }
     }
 
     @ReactMethod
